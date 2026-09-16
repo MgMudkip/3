@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ 반응속도 챌린지</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #111827;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.game {
+    width: min(90%, 600px);
+    padding: 30px;
+    background: #1f2937;
+    border-radius: 24px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,.4);
+}
+
+h1 {
+    margin-top: 0;
+    font-size: 32px;
+}
+
+.info {
+    color: #cbd5e1;
+    margin-bottom: 20px;
+}
+
+#target {
+    width: 100%;
+    height: 260px;
+    border: 0;
+    border-radius: 18px;
+    background: #374151;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .1s;
+}
+
+#target.ready {
+    background: #22c55e;
+}
+
+#target.waiting {
+    background: #ef4444;
+}
+
+button {
+    border: 0;
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#startBtn {
+    margin-top: 20px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.stat {
+    padding: 14px;
+    background: #111827;
+    border-radius: 12px;
+}
+
+.stat-title {
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.stat-value {
+    margin-top: 5px;
+    font-size: 21px;
+    font-weight: bold;
+}
+
+#message {
+    min-height: 30px;
+    margin: 18px 0 0;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.result {
+    margin-top: 15px;
+    padding: 15px;
+    background: #111827;
+    border-radius: 12px;
+    display: none;
+}
+
+@media (max-width: 500px) {
+    .game {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 26px;
+    }
+
+    #target {
+        height: 220px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+    <h1>⚡ 반응속도 챌린지</h1>
+
+    <div class="info">
+        초록색으로 바뀌는 순간 최대한 빠르게 클릭하세요!
+    </div>
+
+    <button id="target">
+        시작 버튼을 눌러주세요
+    </button>
+
+    <div id="message"></div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-title">최근 기록</div>
+            <div class="stat-value" id="last">-</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-title">최고 기록</div>
+            <div class="stat-value" id="best">-</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-title">라운드</div>
+            <div class="stat-value" id="round">0 / 5</div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <button id="startBtn">
+        게임 시작
+    </button>
+</div>
+
+<script>
+const target = document.getElementById("target");
+const startBtn = document.getElementById("startBtn");
+const message = document.getElementById("message");
+const last = document.getElementById("last");
+const best = document.getElementById("best");
+const roundText = document.getElementById("round");
+const result = document.getElementById("result");
+
+let startTime = 0;
+let timer = null;
+let playing = false;
+let round = 0;
+let scores = [];
+
+const MAX_ROUNDS = 5;
+
+let bestScore = localStorage.getItem("reactionBest");
+
+if (bestScore) {
+    best.textContent = bestScore + " ms";
+}
+
+function startGame() {
+    clearTimeout(timer);
+
+    round = 0;
+    scores = [];
+    playing = false;
+
+    last.textContent = "-";
+    roundText.textContent = "0 / " + MAX_ROUNDS;
+    result.style.display = "none";
+
+    message.textContent = "준비하세요...";
+    startBtn.disabled = true;
+
+    nextRound();
+}
+
+function nextRound() {
+    if (round >= MAX_ROUNDS) {
+        finishGame();
+        return;
+    }
+
+    round++;
+    roundText.textContent = round + " / " + MAX_ROUNDS;
+
+    playing = false;
+    target.className = "waiting";
+    target.textContent = "기다리세요...";
+
+    const delay = Math.floor(Math.random() * 2200) + 700;
+
+    timer = setTimeout(() => {
+        playing = true;
+        startTime = performance.now();
+
+        target.className = "ready";
+        target.textContent = "CLICK!";
+    }, delay);
+}
+
+target.addEventListener("click", () => {
+
+    if (playing) {
+
+        const reactionTime = Math.round(performance.now() - startTime);
+
+        scores.push(reactionTime);
+
+        last.textContent = reactionTime + " ms";
+
+        if (!bestScore || reactionTime < Number(bestScore)) {
+            bestScore = reactionTime;
+            localStorage.setItem("reactionBest", bestScore);
+            best.textContent = bestScore + " ms";
+        }
+
+        playing = false;
+
+        target.className = "";
+        target.textContent = "성공!";
+
+        message.textContent = reactionTime + " ms!";
+
+        setTimeout(nextRound, 900);
+
+    } else if (target.classList.contains("waiting")) {
+
+        clearTimeout(timer);
+
+        playing = false;
+
+        target.className = "";
+        target.textContent = "너무 빨랐어요!";
+
+        message.textContent = "❌ 신호가 나오기 전에 클릭했습니다.";
+
+        setTimeout(nextRound, 1000);
+    }
+});
+
+function finishGame() {
+
+    startBtn.disabled = false;
+
+    const average =
+        Math.round(
+            scores.reduce((a, b) => a + b, 0) / scores.length
+        );
+
+    const fastest = Math.min(...scores);
+    const slowest = Math.max(...scores);
+
+    target.className = "";
+    target.textContent = "게임 완료!";
+
+    message.textContent = "🎉 5라운드 완료!";
+
+    result.style.display = "block";
+
+    result.innerHTML = `
+        <strong>최종 결과</strong><br><br>
+        평균 반응속도: <strong>${average} ms</strong><br>
+        가장 빠른 기록: <strong>${fastest} ms</strong><br>
+        가장 느린 기록: <strong>${slowest} ms</strong>
+    `;
+
+    startBtn.textContent = "다시 시작";
+}
+
+startBtn.addEventListener("click", startGame);
+</script>
+
+</body>
+</html>
